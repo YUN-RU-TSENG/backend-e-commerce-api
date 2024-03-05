@@ -29,6 +29,7 @@ exports.login = async (req, res) => {
 
     try {
         const user = await User.findOne({ where: { email } })
+
         if (!user) {
             return res.status(404).json({ message: 'User not found' })
         }
@@ -39,7 +40,7 @@ exports.login = async (req, res) => {
             return res.status(401).json({ message: 'Incorrect password' })
         }
 
-        const token = jwt.sign({ userId: user.id }, 'your-secret-key')
+        const token = jwt.sign({ userId: user.id }, 'your-secret-key', { expiresIn: '12h' })
 
         res.json({ message: 'Login successful', token })
     } catch (error) {
