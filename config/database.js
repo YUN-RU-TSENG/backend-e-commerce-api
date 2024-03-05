@@ -5,4 +5,6 @@ const sequelize = new Sequelize('shop', '', '', {
     dialect: 'postgres',
 })
 
+
+
 module.exports = sequelize

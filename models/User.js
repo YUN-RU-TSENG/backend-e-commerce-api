@@ -18,4 +18,8 @@ const User = sequelize.define('User', {
     },
 })
 
+User.associate = (models) => {
+    User.hasOne(models.Cart)
+}
+
 module.exports = User

@@ -9,15 +9,9 @@ const Category = sequelize.define('Category', {
     },
 })
 
-Category.associate = (models) => {
-    Category.hasMany(models.Product, {
-        foreignKey: 'categoryId',
-        as: 'product',
-    })
-    Category.hasMany(models.SubCategory, {
-        foreignKey: 'categoryId',
-        as: 'subCategory',
-    })
+Category.associate = function (models) {
+    Category.hasMany(models.SubCategory)
+    Category.hasMany(models.Product)
 }
 
 module.exports = Category

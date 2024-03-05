@@ -1,34 +1,10 @@
-// models/Cart.js
-const { DataTypes } = require('sequelize')
 const sequelize = require('../config/database')
-const { Product, Variant } = require('./Product')
-const User = require('./User')
 
-const Cart = sequelize.define('Cart', {
-    quantity: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    price: {
-        type: DataTypes.FLOAT,
-        allowNull: false,
-    },
-    color: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    size: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    productName: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-})
+const Cart = sequelize.define('Cart', {})
 
-Cart.belongsTo(Product)
-Cart.belongsTo(Variant)
-Cart.belongsTo(User)
+Cart.associate = (models) => {
+    Cart.belongsTo(models.User)
+    Cart.belongsToMany(models.Variant, { through: models.CartItem })
+}
 
 module.exports = Cart

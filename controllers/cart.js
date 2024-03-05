@@ -1,30 +1,27 @@
 const jwt = require('jsonwebtoken')
-const { Variant, Product } = require('../models/Product')
+const Variant = require('../models/Variant')
+const Product = require('../models/Product')
 const Cart = require('../models/Cart')
+const CartItem = require('../models/CartItem')
 
 exports.addToCart = async (req, res) => {
     try {
-        const { variantId, productId, quantity } = req.body
+        const { variantId, quantity } = req.body
 
         const userId = req.userId
 
         const variant = await Variant.findByPk(variantId)
-        const product = await Product.findByPk(productId)
 
-        if (!variant || !product) {
+        if (!variant) {
             return res.status(404).json({ message: 'Variant or Product not found' })
         }
 
-        const cart = await Cart.create({
-            UserId: userId,
-            ProductId: productId,
+        const [userCart] = await Cart.findOrCreate({ where: { UserId: userId } })
+
+        const cart = await CartItem.create({
             VariantId: variantId,
+            CartId: userCart.id,
             quantity,
-            // 根據商品和變體設置其他商品細節
-            price: variant.price,
-            color: variant.color,
-            size: variant.size,
-            productName: product.name,
         })
 
         res.status(201).json(cart)

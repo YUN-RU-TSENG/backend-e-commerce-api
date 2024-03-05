@@ -1,5 +1,6 @@
 const SubCategory = require('../models/SubCategory')
 const Category = require('../models/Category')
+// const { Category, SubCategory } = require('../models/Category')
 
 // 創建新的分類
 exports.createSubCategory = async (req, res) => {
@@ -8,13 +9,11 @@ exports.createSubCategory = async (req, res) => {
 
         const category = await Category.findByPk(categoryId)
 
-        console.log(category)
-
         if (!category) {
             return res.status(404).json({ message: 'Category not found' })
         }
 
-        const subCategory = await SubCategory.create({ name, categoryId })
+        const subCategory = await SubCategory.create({ name, CategoryId: categoryId })
 
         res.status(201).json(subCategory)
     } catch (error) {

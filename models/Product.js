@@ -6,24 +6,9 @@ const Product = sequelize.define('Product', {
 })
 
 Product.associate = (models) => {
-    Product.belongsTo(models.Categories, {
-        foreignKey: 'categoryId',
-    })
-    Product.belongsTo(models.SubCategory, {
-        foreignKey: 'subCategoryId',
-    })
+    Product.belongsTo(models.Category)
+    Product.belongsTo(models.SubCategory)
+    Product.hasMany(models.Variant)
 }
 
-// const Variant = sequelize.define('Variant', {
-//     color: { type: DataTypes.STRING, allowNull: false },
-//     size: { type: DataTypes.STRING, allowNull: false },
-//     quantity: { type: DataTypes.INTEGER, allowNull: false },
-//     price: { type: DataTypes.FLOAT, allowNull: false },
-// })
-
-// Product.hasMany(Variant)
-// Variant.belongsTo(Product)
-
 module.exports = Product
-// exports.Product = Product
-// exports.Variant = Variant
