@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize')
 const sequelize = require('../config/database')
 
-const Category = sequelize.define('Categories', {
+const Category = sequelize.define('Category', {
     name: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -14,7 +14,6 @@ Category.associate = (models) => {
         foreignKey: 'categoryId',
         as: 'product',
     })
-
     Category.hasMany(models.SubCategory, {
         foreignKey: 'categoryId',
         as: 'subCategory',

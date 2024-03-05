@@ -1,9 +1,23 @@
-const { Variant, Product } = require('../models/Product')
+const Product = require('../models/Product')
 
 exports.createProduct = async (req, res) => {
     try {
-        const { category, subcategory, name } = req.body
-        const product = await Product.create({ category, subcategory, name })
+        const { categoryId, subCategoryId, name } = req.body
+
+        // 檢查分類和子分類是否存在
+        const category = await Categories.findByPk(categoryId)
+        const subCategory = await SubCategory.findByPk(subCategoryId)
+
+        if (!category || !subCategory) {
+            return res.status(404).json({ message: 'Category or SubCategory not found' })
+        }
+
+        // 創建產品並關聯到分類和子分類
+        const product = await Product.create({ name })
+
+        await product.setCategory(category)
+        await product.setSubCategory(subCategory)
+
         res.status(201).json(product)
     } catch (error) {
         console.error(error)
@@ -13,41 +27,9 @@ exports.createProduct = async (req, res) => {
 
 exports.getAllProducts = async (req, res) => {
     try {
-        const products = await Product.findAll({ include: Variant })
-        res.json(products)
+        const products = await Product.findAll()
+        res.status(200).json(products)
     } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Internal Server Error' })
-    }
-}
-
-exports.updateProduct = async (req, res) => {
-    const { id } = req.params
-    try {
-        const product = await Product.findByPk(id)
-        if (!product) {
-            return res.status(404).json({ message: 'Product not found' })
-        }
-        const { category, subcategory, name } = req.body
-        await product.update({ category, subcategory, name })
-        res.json(product)
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Internal Server Error' })
-    }
-}
-
-exports.deleteProduct = async (req, res) => {
-    const { id } = req.params
-    try {
-        const product = await Product.findByPk(id)
-        if (!product) {
-            return res.status(404).json({ message: 'Product not found' })
-        }
-        await product.destroy()
-        res.json({ message: 'Product deleted successfully' })
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Internal Server Error' })
+        res.status(500).json({ error: error.message })
     }
 }

@@ -14,10 +14,9 @@ SubCategory.associate = (models) => {
         foreignKey: 'categoryId',
         as: 'category',
     })
-
     SubCategory.hasMany(models.Product, {
         foreignKey: 'subCategoryId',
-        as: 'product',
+        as:'product'
     })
 }
 
