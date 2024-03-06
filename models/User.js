@@ -20,6 +20,7 @@ const User = sequelize.define('User', {
 
 User.associate = (models) => {
     User.hasOne(models.Cart)
+    User.hasMany(models.Order)
 }
 
 module.exports = User

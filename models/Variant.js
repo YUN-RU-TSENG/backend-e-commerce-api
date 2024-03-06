@@ -11,6 +11,7 @@ const Variant = sequelize.define('Variant', {
 Variant.associate = (models) => {
     Variant.belongsTo(models.Product)
     Variant.belongsToMany(models.Cart, { through: models.CartItem })
+    Variant.belongsToMany(models.Order, { through: models.OrderItem })
 }
 
 module.exports = Variant

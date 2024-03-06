@@ -1,30 +1,44 @@
-const jwt = require('jsonwebtoken')
 const Variant = require('../models/Variant')
-const Product = require('../models/Product')
 const Cart = require('../models/Cart')
 const CartItem = require('../models/CartItem')
 
 exports.addToCart = async (req, res) => {
     try {
-        const { variantId, quantity } = req.body
+        const { variantId, quantity = 1 } = req.body
 
         const userId = req.userId
 
         const variant = await Variant.findByPk(variantId)
 
         if (!variant) {
-            return res.status(404).json({ message: 'Variant or Product not found' })
+            return res.status(404).json({ message: 'Variant not found' })
+        }
+
+        if (!variant.quantity) {
+            return res.status(404).json({ message: 'Variant quantity not enough' })
         }
 
         const [userCart] = await Cart.findOrCreate({ where: { UserId: userId } })
 
-        const cart = await CartItem.create({
-            VariantId: variantId,
-            CartId: userCart.id,
-            quantity,
+        const existingCartItem = await CartItem.findOne({
+            where: {
+                VariantId: variantId,
+                CartId: userCart.id,
+            },
         })
 
-        res.status(201).json(cart)
+        if (existingCartItem) {
+            existingCartItem.quantity += quantity
+            await existingCartItem.save()
+            res.status(200).json(existingCartItem)
+        } else {
+            const cartItem = await CartItem.create({
+                VariantId: variantId,
+                CartId: userCart.id,
+                quantity,
+            })
+            res.status(201).json(cartItem)
+        }
     } catch (error) {
         console.error(error)
         res.status(500).json({ message: 'Internal Server Error' })
@@ -35,115 +49,88 @@ exports.getCart = async (req, res) => {
     try {
         const userId = req.userId
 
-        const carts = await Cart.findAll({ where: { UserId: userId } })
+        const [userCart] = await Cart.findOrCreate({
+            where: { UserId: userId },
+            include: [
+                {
+                    model: Variant,
+                    through: { attributes: ['quantity'] },
+                },
+            ],
+        })
 
-        res.json(carts)
+        res.json(userCart)
     } catch (error) {
         console.error(error)
         res.status(500).json({ message: 'Internal Server Error' })
     }
 }
 
-exports.updateCart = async (req, res) => {
+exports.updateCartItem = async (req, res) => {
     try {
+        const { variantId, quantity } = req.body
+
         const userId = req.userId
 
-        const { id } = req.params
-        const { quantity } = req.body
+        const variant = await Variant.findByPk(variantId)
 
-        const cart = await Cart.findByPk(id)
-
-        if (!cart) {
-            return res.status(404).json({ message: 'Cart not found' })
+        if (!variant) {
+            return res.status(404).json({ message: 'Variant not found' })
         }
 
-        if (cart.userId !== userId) {
-            return res.status(403).json({ message: 'Forbidden' })
+        if (!variant.quantity) {
+            return res.status(404).json({ message: 'Variant quantity not enough' })
         }
 
-        await cart.update({ quantity })
-        res.json(cart)
+        const [userCart] = await Cart.findOrCreate({ where: { UserId: userId } })
+
+        const existingCartItem = await CartItem.findOne({
+            where: {
+                VariantId: variantId,
+                CartId: userCart.id,
+            },
+        })
+
+        if (existingCartItem) {
+            existingCartItem.quantity = quantity
+            await existingCartItem.save()
+            res.status(200).json(existingCartItem)
+        } else {
+            return res.status(404).json({ message: 'CartItem not found' })
+        }
     } catch (error) {
         console.error(error)
         res.status(500).json({ message: 'Internal Server Error' })
     }
 }
 
-exports.removeCart = async (req, res) => {
+exports.removeCartItem = async (req, res) => {
     try {
+        const { variantId } = req.body
+
         const userId = req.userId
-        const { id } = req.params
 
-        const cart = await Cart.findByPk(id)
+        const variant = await Variant.findByPk(variantId)
 
-        if (!cart) {
-            return res.status(404).json({ message: 'Cart not found' })
+        if (!variant) {
+            return res.status(404).json({ message: 'Variant not found' })
         }
 
-        if (cart.UserId !== userId) {
-            return res.status(403).json({ message: 'Forbidden' })
+        const [userCart] = await Cart.findOrCreate({ where: { UserId: userId } })
+
+        const existingCartItem = await CartItem.findOne({
+            where: {
+                VariantId: variantId,
+                CartId: userCart.id,
+            },
+        })
+
+        if (existingCartItem) {
+            await existingCartItem.destroy()
+            res.status(204).send()
+        } else {
+            res.status(404).json({ message: 'CartItem not found' })
         }
-
-        await cart.destroy()
-        res.json({ message: 'Cart deleted successfully' })
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Internal Server Error' })
-    }
-}
-
-exports.calculateTotal = async (req, res) => {
-    try {
-        const tokenWithBearer = req.headers.authorization
-        const token = tokenWithBearer.split(' ')[1]
-
-        jwt.verify(token, 'your-secret-key', async (err, decoded) => {
-            if (err) {
-                return res.status(401).json({ message: 'Invalid token' })
-            }
-
-            const userId = decoded.userId
-
-            // 取得用戶購物車中的所有商品
-            const carts = await Cart.findAll({ where: { UserId: userId } })
-
-            // 計算總價格
-            let totalPrice = 0
-            for (const cart of carts) {
-                totalPrice += cart.price * cart.quantity
-            }
-
-            res.json({ totalPrice })
-        })
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Internal Server Error' })
-    }
-}
-
-exports.purchaseCart = async (req, res) => {
-    try {
-        const tokenWithBearer = req.headers.authorization
-        const token = tokenWithBearer.split(' ')[1]
-
-        jwt.verify(token, 'your-secret-key', async (err, decoded) => {
-            if (err) {
-                return res.status(401).json({ message: 'Invalid token' })
-            }
-
-            const userId = decoded.userId
-
-            // 取得用戶購物車中的所有商品
-            const carts = await Cart.findAll({ where: { UserId: userId } })
-
-            // 假設這裡是你處理購買邏輯的程式碼
-            // 例如：更新庫存、生成訂單、清空購物車等等
-
-            // 假設處理完購買後清空購物車
-            await Cart.destroy({ where: { UserId: userId } })
-
-            res.json({ message: 'Purchase completed successfully' })
-        })
     } catch (error) {
         console.error(error)
         res.status(500).json({ message: 'Internal Server Error' })

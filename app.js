@@ -9,6 +9,7 @@ const subCategoryRoutes = require('./routes/subCategory')
 const productRoutes = require('./routes/product')
 const variantRoutes = require('./routes/variant')
 const cartRoutes = require('./routes/cart')
+const orderRoutes = require('./routes/order')
 
 const app = express()
 const port = 3030
@@ -22,8 +23,10 @@ app.use('/api/sub-category', subCategoryRoutes)
 app.use('/api/product', productRoutes)
 app.use('/api/variant', variantRoutes)
 app.use('/api/cart', cartRoutes)
+app.use('/api/order', orderRoutes)
 
 associateModels()
+
 sequelize.sync({ force: false }).then(() => {
     console.log('Database & tables created!')
 })

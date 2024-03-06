@@ -5,6 +5,8 @@ const Product = require('./Product')
 const User = require('./User')
 const Variant = require('./Variant')
 const CartItem = require('./CartItem')
+const Order = require('./Order')
+const OrderItem = require('./OrderItem')
 
 module.exports = {
     Cart,
@@ -14,4 +16,6 @@ module.exports = {
     Product,
     Variant,
     CartItem,
+    Order,
+    OrderItem,
 }
