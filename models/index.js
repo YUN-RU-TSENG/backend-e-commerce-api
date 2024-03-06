@@ -9,13 +9,13 @@ const Order = require('./Order')
 const OrderItem = require('./OrderItem')
 
 module.exports = {
-    Cart,
-    Category,
-    SubCategory,
-    User,
-    Product,
-    Variant,
-    CartItem,
-    Order,
-    OrderItem,
+  Cart,
+  Category,
+  SubCategory,
+  User,
+  Product,
+  Variant,
+  CartItem,
+  Order,
+  OrderItem,
 }

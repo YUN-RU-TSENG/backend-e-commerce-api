@@ -4,73 +4,73 @@ const Variant = require('../models/Variant')
 const Joi = require('joi')
 
 const orderSchema = Joi.object({
-    variants: Joi.array().required(),
+  variants: Joi.array().required(),
 })
 
 exports.getAllOrder = async (req, res) => {
-    try {
-        const userId = req.userId
+  try {
+    const userId = req.userId
 
-        const userOrder = await Order.findAll({
-            where: { UserId: userId },
-            include: [
-                {
-                    model: Variant,
-                    through: { attributes: ['quantity'] },
-                },
-            ],
-        })
+    const userOrder = await Order.findAll({
+      where: { UserId: userId },
+      include: [
+        {
+          model: Variant,
+          through: { attributes: ['quantity'] },
+        },
+      ],
+    })
 
-        res.json(userOrder)
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Internal Server Error' })
-    }
+    res.json(userOrder)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
 }
 
 exports.createOrder = async (req, res) => {
-    try {
-        const { error } = orderSchema.validate(req.body)
+  try {
+    const { error } = orderSchema.validate(req.body)
 
-        if (error) return res.status(400).json({ error: error.details[0].message })
+    if (error) return res.status(400).json({ error: error.details[0].message })
 
-        const { variants: orderItems } = req.body // 接收一組包含商品變體 id 以及數量的陣列
+    const { variants: orderItems } = req.body // 接收一組包含商品變體 id 以及數量的陣列
 
-        const userId = req.userId
+    const userId = req.userId
 
-        const userOrder = await Order.create({ UserId: userId }) // 建立新的訂單
+    const userOrder = await Order.create({ UserId: userId }) // 建立新的訂單
 
-        const orderItemsPromises = orderItems.map(async (item) => {
-            const { variantId, quantity } = item
+    const orderItemsPromises = orderItems.map(async (item) => {
+      const { variantId, quantity } = item
 
-            const variant = await Variant.findByPk(variantId)
+      const variant = await Variant.findByPk(variantId)
 
-            if (!variant) {
-                return res.status(404).json({ message: 'Variant not found' })
-            }
+      if (!variant) {
+        return res.status(404).json({ message: 'Variant not found' })
+      }
 
-            if (!variant.quantity || variant.quantity < quantity) {
-                return res.status(404).json({ message: 'Variant quantity not enough' })
-            }
+      if (!variant.quantity || variant.quantity < quantity) {
+        return res.status(404).json({ message: 'Variant quantity not enough' })
+      }
 
-            await OrderItem.create({
-                VariantId: variantId,
-                OrderId: userOrder.id,
-                quantity,
-            })
+      await OrderItem.create({
+        VariantId: variantId,
+        OrderId: userOrder.id,
+        quantity,
+      })
 
-            // 減少庫存數量
-            variant.quantity -= quantity
-            await variant.save()
-        })
+      // 減少庫存數量
+      variant.quantity -= quantity
+      await variant.save()
+    })
 
-        await Promise.all(orderItemsPromises)
+    await Promise.all(orderItemsPromises)
 
-        res.status(201).json({ message: 'Order created successfully' })
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ message: 'Internal Server Error' })
-    }
+    res.status(201).json({ message: 'Order created successfully' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
 }
 
 exports.updateOrder = () => {}

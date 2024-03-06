@@ -28,9 +28,9 @@ app.use('/api/order', orderRoutes)
 associateModels()
 
 sequelize.sync({ force: false }).then(() => {
-    console.log('Database & tables created!')
+  console.log('Database & tables created!')
 })
 
 app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`)
+  console.log(`Server is running on http://localhost:${port}`)
 })
