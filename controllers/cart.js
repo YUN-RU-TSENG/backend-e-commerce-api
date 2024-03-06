@@ -1,10 +1,20 @@
 const Variant = require('../models/Variant')
 const Cart = require('../models/Cart')
 const CartItem = require('../models/CartItem')
+const Joi = require('joi')
+
+const cartSchema = Joi.object({
+    variantId: Joi.number().required(),
+    quantity: Joi.number().required(),
+})
 
 exports.addToCart = async (req, res) => {
     try {
-        const { variantId, quantity = 1 } = req.body
+        const { error } = cartSchema.validate(req.body)
+
+        if (error) return res.status(400).json({ error: error.details[0].message })
+
+        const { variantId, quantity } = req.body
 
         const userId = req.userId
 
@@ -31,14 +41,15 @@ exports.addToCart = async (req, res) => {
             existingCartItem.quantity += quantity
             await existingCartItem.save()
             res.status(200).json(existingCartItem)
-        } else {
-            const cartItem = await CartItem.create({
-                VariantId: variantId,
-                CartId: userCart.id,
-                quantity,
-            })
-            res.status(201).json(cartItem)
+            return
         }
+
+        const cartItem = await CartItem.create({
+            VariantId: variantId,
+            CartId: userCart.id,
+            quantity,
+        })
+        res.status(201).json(cartItem)
     } catch (error) {
         console.error(error)
         res.status(500).json({ message: 'Internal Server Error' })
@@ -68,6 +79,10 @@ exports.getCart = async (req, res) => {
 
 exports.updateCartItem = async (req, res) => {
     try {
+        const { error } = cartSchema.validate(req.body)
+
+        if (error) return res.status(400).json({ error: error.details[0].message })
+
         const { variantId, quantity } = req.body
 
         const userId = req.userId

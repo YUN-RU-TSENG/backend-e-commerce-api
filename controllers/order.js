@@ -1,6 +1,11 @@
 const Order = require('../models/Order')
 const OrderItem = require('../models/OrderItem')
 const Variant = require('../models/Variant')
+const Joi = require('joi')
+
+const orderSchema = Joi.object({
+    variants: Joi.array().required(),
+})
 
 exports.getAllOrder = async (req, res) => {
     try {
@@ -25,6 +30,10 @@ exports.getAllOrder = async (req, res) => {
 
 exports.createOrder = async (req, res) => {
     try {
+        const { error } = orderSchema.validate(req.body)
+
+        if (error) return res.status(400).json({ error: error.details[0].message })
+
         const { variants: orderItems } = req.body // 接收一組包含商品變體 id 以及數量的陣列
 
         const userId = req.userId
@@ -64,10 +73,6 @@ exports.createOrder = async (req, res) => {
     }
 }
 
-exports.updateOrder = (req, res) => {
-    res.status(200)
-}
+exports.updateOrder = (req, res) => {}
 
-exports.deleteOrder = async (req, res) => {
-    res.status(200)
-}
+exports.deleteOrder = (req, res) => {}

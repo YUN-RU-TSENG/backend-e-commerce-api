@@ -6,7 +6,7 @@ const SubCategory = sequelize.define('SubCategory', {
     name: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
+        unique: false,
     },
 })
 
