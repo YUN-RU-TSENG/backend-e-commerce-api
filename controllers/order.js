@@ -73,6 +73,6 @@ exports.createOrder = async (req, res) => {
     }
 }
 
-exports.updateOrder = (req, res) => {}
+exports.updateOrder = () => {}
 
-exports.deleteOrder = (req, res) => {}
+exports.deleteOrder = () => {}

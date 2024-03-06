@@ -5,6 +5,6 @@ const OrderItem = sequelize.define('OrderItem', {
     quantity: { type: DataTypes.FLOAT, allowNull: false },
 })
 
-OrderItem.associate = (models) => {}
+OrderItem.associate = () => {}
 
 module.exports = OrderItem
