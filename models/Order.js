@@ -1,9 +1,7 @@
 const { DataTypes } = require('sequelize')
 const sequelize = require('../config/database')
 
-const Order = sequelize.define('Order', {
-    name: { type: DataTypes.STRING, allowNull: false },
-})
+const Order = sequelize.define('Order', {})
 
 Order.associate = (models) => {
     Order.belongsTo(models.User)
