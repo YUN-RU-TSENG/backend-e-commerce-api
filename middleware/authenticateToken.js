@@ -13,7 +13,7 @@ function authenticateToken(req, res, next) {
       return res.status(403).json({ message: 'Invalid token' })
     }
 
-    req.userId = decoded.userId
+    req.user.userId = decoded.userId
     next()
   })
 }

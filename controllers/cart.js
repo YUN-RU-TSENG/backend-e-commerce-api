@@ -16,7 +16,7 @@ exports.addToCart = async (req, res) => {
 
     const { variantId, quantity } = req.body
 
-    const userId = req.userId
+    const userId = req.user.userId
 
     const variant = await Variant.findByPk(variantId)
 
@@ -58,7 +58,7 @@ exports.addToCart = async (req, res) => {
 
 exports.getCart = async (req, res) => {
   try {
-    const userId = req.userId
+    const userId = req.user.userId
 
     const [userCart] = await Cart.findOrCreate({
       where: { UserId: userId },
@@ -85,7 +85,7 @@ exports.updateCartItem = async (req, res) => {
 
     const { variantId, quantity } = req.body
 
-    const userId = req.userId
+    const userId = req.user.userId
 
     const variant = await Variant.findByPk(variantId)
 
@@ -123,7 +123,7 @@ exports.removeCartItem = async (req, res) => {
   try {
     const { variantId } = req.body
 
-    const userId = req.userId
+    const userId = req.user.userId
 
     const variant = await Variant.findByPk(variantId)
 

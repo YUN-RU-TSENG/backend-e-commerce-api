@@ -9,7 +9,7 @@ const orderSchema = Joi.object({
 
 exports.getAllOrder = async (req, res) => {
   try {
-    const userId = req.userId
+    const userId = req.user.userId
 
     const userOrder = await Order.findAll({
       where: { UserId: userId },
@@ -36,7 +36,7 @@ exports.createOrder = async (req, res) => {
 
     const { variants: orderItems } = req.body // 接收一組包含商品變體 id 以及數量的陣列
 
-    const userId = req.userId
+    const userId = req.user.userId
 
     const userOrder = await Order.create({ UserId: userId }) // 建立新的訂單
 
