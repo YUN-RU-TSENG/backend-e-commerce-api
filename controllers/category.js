@@ -49,7 +49,7 @@ exports.updateCategory = async (req, res) => {
     const existingCategory = await Category.findByPk(categoryId)
 
     if (!existingCategory) {
-      return res.status(400).json({ error: 'Name not found' })
+      return res.status(400).json({ error: 'Category not found' })
     }
 
     existingCategory.name = name
@@ -67,7 +67,7 @@ exports.deleteCategory = async (req, res) => {
     const existingCategory = await Category.findByPk(categoryId)
 
     if (!existingCategory) {
-      return res.status(400).json({ message: 'Name not found' })
+      return res.status(400).json({ message: 'Category not found' })
     }
 
     await existingCategory.destroy()

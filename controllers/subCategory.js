@@ -7,6 +7,19 @@ const subCategorySchema = Joi.object({
   categoryId: Joi.number().required(),
 })
 
+const updateSubCategorySchema = Joi.object({
+  name: Joi.string().required(),
+})
+
+exports.getAllSubCategory = async (req, res) => {
+  try {
+    const subCategories = await SubCategory.findAll()
+    res.status(200).json(subCategories)
+  } catch (error) {
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
+
 exports.createSubCategory = async (req, res) => {
   try {
     const { error } = subCategorySchema.validate(req.body)
@@ -18,7 +31,7 @@ exports.createSubCategory = async (req, res) => {
     const category = await Category.findByPk(categoryId)
 
     if (!category) {
-      return res.status(404).json({ message: 'Category not found' })
+      return res.status(404).json({ message: 'SubCategory not found' })
     }
 
     const existingSubCategory = await SubCategory.findOne({
@@ -36,16 +49,45 @@ exports.createSubCategory = async (req, res) => {
 
     res.status(201).json(subCategory)
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: 'Internal Server Error' })
   }
 }
 
-// 獲取所有分類
-exports.getAllSubCategory = async (req, res) => {
+exports.updateSubCategory = async (req, res) => {
   try {
-    const subCategories = await SubCategory.findAll()
-    res.status(200).json(subCategories)
+    const { error } = updateSubCategorySchema.validate(req.body)
+    if (error) return res.status(400).json({ error: error.details[0].message })
+
+    const { name } = req.body
+    const subCategoryId = req.params.id
+
+    const existingSubCategory = await SubCategory.findByPk(subCategoryId)
+    if (!existingSubCategory) {
+      return res.status(400).json({ error: 'SubCategory not found' })
+    }
+
+    existingSubCategory.name = name
+    await existingSubCategory.save()
+
+    res.status(201).json(existingSubCategory)
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
+
+exports.deleteSubCategory = async (req, res) => {
+  try {
+    const subCategoryId = req.params.id
+    const existingSubCategory = await SubCategory.findByPk(subCategoryId)
+
+    if (!existingSubCategory) {
+      return res.status(400).json({ message: 'SubCategory not found' })
+    }
+
+    await existingSubCategory.destroy()
+
+    res.status(204).send()
+  } catch (error) {
+    res.status(500).json({ message: 'Internal Server Error' })
   }
 }

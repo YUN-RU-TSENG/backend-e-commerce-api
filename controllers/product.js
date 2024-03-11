@@ -8,7 +8,46 @@ const productSchema = Joi.object({
   categoryId: Joi.number().required(),
   subCategoryId: Joi.number().required(),
   name: Joi.string().required(),
+  image: Joi.string().required(),
 })
+
+const updateProductSchema = Joi.object({
+  name: Joi.string().required(),
+  image: Joi.string().required(),
+})
+
+exports.getAllProducts = async (req, res) => {
+  try {
+    const products = await Product.findAll()
+    res.status(200).json(products)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: error.message })
+  }
+}
+
+exports.getProduct = async (req, res) => {
+  try {
+    const productId = req.params.id
+    const existingProduct = await Product.findOne({
+      where: { id: productId },
+      include: [
+        { model: Variant },
+        { model: Category },
+        { model: SubCategory },
+      ],
+    })
+
+    if (!existingProduct) {
+      res.status(400).json({ message: 'Product not found' })
+    }
+
+    res.status(200).json(existingProduct)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
 
 exports.createProduct = async (req, res) => {
   try {
@@ -16,7 +55,7 @@ exports.createProduct = async (req, res) => {
 
     if (error) return res.status(400).json({ error: error.details[0].message })
 
-    const { categoryId, subCategoryId, name } = req.body
+    const { categoryId, subCategoryId, name, image } = req.body
 
     // 檢查分類和子分類是否存在
     const category = await Category.findByPk(categoryId)
@@ -33,7 +72,7 @@ exports.createProduct = async (req, res) => {
     })
 
     if (existingProduct) {
-      return res.status(400).json({ error: 'Name already exists' })
+      return res.status(400).json({ error: 'Product already exists' })
     }
 
     // 創建產品並關聯到分類和子分類
@@ -41,6 +80,7 @@ exports.createProduct = async (req, res) => {
       name,
       SubCategoryId: subCategoryId,
       CategoryId: categoryId,
+      image,
     })
 
     res.status(201).json(product)
@@ -50,15 +90,43 @@ exports.createProduct = async (req, res) => {
   }
 }
 
-exports.getAllProducts = async (req, res) => {
+exports.updateProduct = async (req, res) => {
   try {
-    const products = await Product.findAll({ include: { model: Variant } })
-    res.status(200).json(products)
+    const { error } = updateProductSchema.validate(req.body)
+    if (error) return res.status(400).json({ error: error.details[0].message })
+
+    const { image, name } = req.body
+    const productId = req.params.id
+
+    const existingProduct = await Product.findByPk(productId)
+
+    if (!existingProduct) {
+      return res.status(400).json({ error: 'Product not found' })
+    }
+
+    existingProduct.name = name
+    existingProduct.image = image
+
+    await existingProduct.save()
+    res.status(200).json(existingProduct)
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    console.error(error)
+    res.status(500).json({ message: 'Internal Server Error' })
   }
 }
 
-exports.updateProduct = () => {}
+exports.deleteProduct = async (req, res) => {
+  try {
+    const productId = req.params.id
+    const existingProduct = await Product.findByPk(productId)
 
-exports.deleteProduct = () => {}
+    if (!existingProduct) {
+      return res.status(400).json({ message: 'Product not found' })
+    }
+
+    await existingProduct.destroy()
+    res.status(204).send()
+  } catch (error) {
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}

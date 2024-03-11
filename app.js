@@ -26,16 +26,24 @@ app.use('/api/cart', cartRoutes)
 app.use('/api/order', orderRoutes)
 
 const authAdminRoutes = require('./routes/admin/auth')
-const productAdminRoutes = require('./routes/admin/product')
 const categoryAdminRoutes = require('./routes/admin/category')
+const subCategoryAdminRoutes = require('./routes/admin/subCategory')
+const productAdminRoutes = require('./routes/admin/product')
+const variantAdminRoutes = require('./routes/admin/variant')
 
 app.use('/api/admin/auth', authAdminRoutes)
-app.use('/api/admin/product', productAdminRoutes)
 app.use('/api/admin/category', categoryAdminRoutes)
+app.use('/api/admin/sub-category', subCategoryAdminRoutes)
+app.use('/api/admin/product', productAdminRoutes)
+app.use('/api/admin/variant', variantAdminRoutes)
 
 const swaggerUi = require('swagger-ui-express')
 const swaggerSpecs = require('./utils/swaggerConfig.js')
 app.use('/document/', swaggerUi.serve, swaggerUi.setup(swaggerSpecs))
+
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not Found' })
+})
 
 associateModels()
 
