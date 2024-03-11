@@ -30,12 +30,14 @@ const categoryAdminRoutes = require('./routes/admin/category')
 const subCategoryAdminRoutes = require('./routes/admin/subCategory')
 const productAdminRoutes = require('./routes/admin/product')
 const variantAdminRoutes = require('./routes/admin/variant')
+const cartAdminRoutes = require('./routes/admin/cart')
 
 app.use('/api/admin/auth', authAdminRoutes)
 app.use('/api/admin/category', categoryAdminRoutes)
 app.use('/api/admin/sub-category', subCategoryAdminRoutes)
 app.use('/api/admin/product', productAdminRoutes)
 app.use('/api/admin/variant', variantAdminRoutes)
+app.use('/api/admin/cart', cartAdminRoutes)
 
 const swaggerUi = require('swagger-ui-express')
 const swaggerSpecs = require('./utils/swaggerConfig.js')
@@ -47,7 +49,7 @@ app.use((req, res) => {
 
 associateModels()
 
-sequelize.sync({ force: true }).then(() => {
+sequelize.sync({ force: false }).then(() => {
   console.log('Database & tables created!')
   app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`)

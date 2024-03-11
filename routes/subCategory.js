@@ -5,4 +5,3 @@ const subCategoryController = require('../controllers/subCategory')
 router.get('/', subCategoryController.getAllSubCategory)
 
 module.exports = router
-

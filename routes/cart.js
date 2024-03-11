@@ -6,6 +6,6 @@ const authenticateToken = require('../middleware/authenticateToken.js')
 router.get('/', authenticateToken, cartController.getCart)
 router.post('/', authenticateToken, cartController.addToCart)
 router.put('/', authenticateToken, cartController.updateCartItem)
-router.delete('/', authenticateToken, cartController.removeCartItem)
+router.delete('/', authenticateToken, cartController.deleteCartItem)
 
 module.exports = router
