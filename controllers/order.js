@@ -1,13 +1,26 @@
 const Order = require('../models/Order')
 const OrderItem = require('../models/OrderItem')
 const Variant = require('../models/Variant')
+const User = require('../models/User')
 const Joi = require('joi')
+const sequelize = require('../config/database.js')
 
 const orderSchema = Joi.object({
-  variants: Joi.array().required(),
+  variants: Joi.array()
+    .items(
+      Joi.object({
+        variantId: Joi.number().required(),
+        quantity: Joi.number().integer().min(1).required(),
+      }),
+    )
+    .required(),
 })
 
-exports.getAllOrder = async (req, res) => {
+const updateOrderSchema = Joi.object({
+  status: Joi.string().required(),
+})
+
+exports.getAllOrdersOfUser = async (req, res) => {
   try {
     const userId = req.user.userId
 
@@ -28,51 +41,193 @@ exports.getAllOrder = async (req, res) => {
   }
 }
 
-exports.createOrder = async (req, res) => {
+exports.getOrderOfUser = async (req, res) => {
   try {
-    const { error } = orderSchema.validate(req.body)
-
-    if (error) return res.status(400).json({ error: error.details[0].message })
-
-    const { variants: orderItems } = req.body // 接收一組包含商品變體 id 以及數量的陣列
-
-    const userId = req.user.userId
-
-    const userOrder = await Order.create({ UserId: userId }) // 建立新的訂單
-
-    const orderItemsPromises = orderItems.map(async (item) => {
-      const { variantId, quantity } = item
-
-      const variant = await Variant.findByPk(variantId)
-
-      if (!variant) {
-        return res.status(404).json({ message: 'Variant not found' })
-      }
-
-      if (!variant.quantity || variant.quantity < quantity) {
-        return res.status(404).json({ message: 'Variant quantity not enough' })
-      }
-
-      await OrderItem.create({
-        VariantId: variantId,
-        OrderId: userOrder.id,
-        quantity,
-      })
-
-      // 減少庫存數量
-      variant.quantity -= quantity
-      await variant.save()
+    const orderId = req.params.id
+    const existingOrder = await Order.findOne({
+      where: { id: orderId },
+      include: [
+        { model: User },
+        { model: Variant, through: { attributes: ['quantity'] } },
+      ],
     })
 
-    await Promise.all(orderItemsPromises)
+    if (!existingOrder) {
+      res.status(400).json({ message: 'Order not found' })
+    }
 
-    res.status(201).json({ message: 'Order created successfully' })
+    res.status(200).json(existingOrder)
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Internal Server Error' })
   }
 }
 
-exports.updateOrder = () => {}
+exports.getAllOrders = async (req, res) => {
+  try {
+    const users = await User.findAll({
+      where: { role: 'user' },
+      include: [
+        {
+          model: Order,
+          include: [
+            {
+              model: Variant,
+              through: { attributes: ['quantity'] },
+            },
+          ],
+        },
+      ],
+    })
 
-exports.deleteOrder = () => {}
+    res.json(users)
+  } catch (error) {
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
+
+exports.createOrders = async (req, res) => {
+  const transaction = await sequelize.transaction()
+  try {
+    const { error } = orderSchema.validate(req.body)
+    if (error) return res.status(400).json({ error: error.details[0].message })
+
+    const { variants: orderItems } = req.body
+    const userId = req.user.userId
+
+    const userOrder = await Order.create(
+      { UserId: userId, status: 'established' },
+      { transaction },
+    )
+
+    for (const item of orderItems) {
+      const { variantId, quantity } = item
+
+      const variant = await Variant.findByPk(variantId)
+
+      if (!variant) {
+        await transaction.rollback()
+        return res.status(400).json({ message: 'Variant not found' })
+      }
+
+      if (variant.quantity < quantity) {
+        await transaction.rollback()
+        return res.status(400).json({ message: 'Variant quantity not enough' })
+      }
+
+      const existingOrderItem = await OrderItem.findOne({
+        where: {
+          VariantId: variantId,
+          OrderId: userOrder.id,
+        },
+      })
+
+      console.log({
+        VariantId: variantId,
+        OrderId: userOrder.id,
+      })
+
+      if (existingOrderItem) {
+        await transaction.rollback()
+        return res.status(400).json({ message: 'Order Variant duplicate' })
+      }
+
+      await OrderItem.create(
+        {
+          VariantId: variantId,
+          OrderId: userOrder.id,
+          quantity,
+        },
+        { transaction },
+      )
+
+      await variant.update(
+        { quantity: variant.quantity - quantity },
+        { transaction },
+      )
+    }
+
+    await transaction.commit()
+    res.status(201).json(userOrder)
+  } catch (error) {
+    await transaction.rollback()
+    console.error(error)
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
+
+exports.updateOrderStatusByUser = async (req, res) => {
+  try {
+    const { error } = updateOrderSchema.validate(req.body)
+    if (error) return res.status(400).json({ error: error.details[0].message })
+
+    const orderId = req.params.id
+    const { status } = req.body
+
+    const existingOrder = await Order.findByPk(orderId)
+
+    if (!existingOrder) {
+      return res.status(400).json({ message: 'Order not found' })
+    }
+
+    if (['established'].some((item) => item === existingOrder.status)) {
+      if (status === 'cancelled') {
+        existingOrder.status = status
+        await existingOrder.save()
+        return res.status(200).json({ existingOrder })
+      }
+    }
+
+    return res.status(400).json({ message: 'Order status error' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
+
+exports.updateOrderStatusByAdmin = async (req, res) => {
+  try {
+    const { error } = updateOrderSchema.validate(req.body)
+    if (error) return res.status(400).json({ error: error.details[0].message })
+
+    const orderId = req.params.id
+    const { status } = req.body
+
+    const existingOrder = await Order.findByPk(orderId)
+
+    if (!existingOrder) {
+      return res.status(400).json({ message: 'Order not found' })
+    }
+
+    if (
+      ['established', 'sorting'].some((item) => item === existingOrder.status)
+    ) {
+      if (status === 'cancelled') {
+        existingOrder.status = status
+        await existingOrder.save()
+        return res.status(200).json({ existingOrder })
+      }
+    }
+
+    return res.status(400).json({ message: 'Order status error' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
+
+exports.deleteOrder = async (req, res) => {
+  try {
+    const orderId = req.params.id
+    const existingOrder = await Order.findByPk(orderId)
+
+    if (!existingOrder) {
+      return res.status(400).json({ message: 'Order not found' })
+    }
+
+    await existingOrder.destroy()
+    res.status(204).send()
+  } catch (error) {
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
