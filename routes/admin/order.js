@@ -15,7 +15,14 @@ router.post(
   '/:id/cancel',
   authenticateToken,
   hasPermission('admin'),
-  orderController.updateOrderStatusByAdmin,
+  orderController.cancelOrderByAdmin,
+)
+
+router.post(
+  '/:id/sort',
+  authenticateToken,
+  hasPermission('admin'),
+  orderController.sortOrderByAdmin,
 )
 
 module.exports = router

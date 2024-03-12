@@ -16,10 +16,6 @@ const orderSchema = Joi.object({
     .required(),
 })
 
-const updateOrderSchema = Joi.object({
-  status: Joi.string().required(),
-})
-
 exports.getAllOrdersOfUser = async (req, res) => {
   try {
     const userId = req.user.userId
@@ -157,42 +153,30 @@ exports.createOrders = async (req, res) => {
   }
 }
 
-exports.updateOrderStatusByUser = async (req, res) => {
+exports.cancelOrderByUser = async (req, res) => {
   try {
-    const { error } = updateOrderSchema.validate(req.body)
-    if (error) return res.status(400).json({ error: error.details[0].message })
-
     const orderId = req.params.id
-    const { status } = req.body
-
     const existingOrder = await Order.findByPk(orderId)
 
     if (!existingOrder) {
       return res.status(400).json({ message: 'Order not found' })
     }
 
-    if (['established'].some((item) => item === existingOrder.status)) {
-      if (status === 'cancelled') {
-        existingOrder.status = status
-        await existingOrder.save()
-        return res.status(200).json({ existingOrder })
-      }
+    if ('established' !== existingOrder.status) {
+      return res.status(400).json({ message: 'Order status error' })
     }
 
-    return res.status(400).json({ message: 'Order status error' })
+    await existingOrder.update({ status: 'cancelled' })
+    return res.status(200).json({ existingOrder })
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Internal Server Error' })
   }
 }
 
-exports.updateOrderStatusByAdmin = async (req, res) => {
+exports.cancelOrderByAdmin = async (req, res) => {
   try {
-    const { error } = updateOrderSchema.validate(req.body)
-    if (error) return res.status(400).json({ error: error.details[0].message })
-
     const orderId = req.params.id
-    const { status } = req.body
 
     const existingOrder = await Order.findByPk(orderId)
 
@@ -201,13 +185,31 @@ exports.updateOrderStatusByAdmin = async (req, res) => {
     }
 
     if (
-      ['established', 'sorting'].some((item) => item === existingOrder.status)
+      ['established', 'sorting'].every((item) => item !== existingOrder.status)
     ) {
-      if (status === 'cancelled') {
-        existingOrder.status = status
-        await existingOrder.save()
-        return res.status(200).json({ existingOrder })
-      }
+      return res.status(400).json({ message: 'Order status error' })
+    }
+
+    await existingOrder.update({ status: 'cancelled' })
+    return res.status(200).json({ existingOrder })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
+
+exports.sortOrderByAdmin = async (req, res) => {
+  try {
+    const orderId = req.params.id
+    const existingOrder = await Order.findByPk(orderId)
+
+    if (!existingOrder) {
+      return res.status(400).json({ message: 'Order not found' })
+    }
+
+    if (existingOrder.status === 'established') {
+      await existingOrder.update({ status: 'sorting' })
+      return res.status(200).json({ existingOrder })
     }
 
     return res.status(400).json({ message: 'Order status error' })

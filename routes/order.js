@@ -29,7 +29,7 @@ router.post(
   '/:id/cancel',
   authenticateToken,
   hasPermission('user'),
-  orderController.updateOrderStatusByUser,
+  orderController.cancelOrderByUser,
 )
 
 router.post(
