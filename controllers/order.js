@@ -98,7 +98,7 @@ exports.createOrders = async (req, res) => {
     let totalPrice = 0
 
     const userOrder = await Order.create(
-      { UserId: userId, status: 'established', price:totalPrice },
+      { UserId: userId, status: 'established', price: totalPrice },
       { transaction },
     )
 
@@ -146,7 +146,7 @@ exports.createOrders = async (req, res) => {
       totalPrice += variant.price * quantity
     }
 
-    await userOrder.update({price: totalPrice }, { transaction })
+    await userOrder.update({ price: totalPrice }, { transaction })
     await transaction.commit()
 
     res.status(201).json(userOrder)
