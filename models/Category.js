@@ -10,7 +10,7 @@ const Category = sequelize.define('Category', {
 })
 
 Category.associate = function (models) {
-  Category.hasMany(models.SubCategory)
+  Category.hasMany(models.SubCategory, { onDelete: 'CASCADE' })
   Category.hasMany(models.Product)
 }
 

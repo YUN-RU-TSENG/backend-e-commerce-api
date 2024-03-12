@@ -9,7 +9,7 @@ const Product = sequelize.define('Product', {
 Product.associate = (models) => {
   Product.belongsTo(models.Category)
   Product.belongsTo(models.SubCategory)
-  Product.hasMany(models.Variant)
+  Product.hasMany(models.Variant, { onDelete: 'CASCADE' })
 }
 
 module.exports = Product
