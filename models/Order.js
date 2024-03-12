@@ -13,6 +13,10 @@ const Order = sequelize.define('Order', {
     ]),
     allowNull: false,
   },
+  price: {
+    type: DataTypes.FLOAT(),
+    allowNull: false,
+  },
 })
 
 Order.associate = (models) => {

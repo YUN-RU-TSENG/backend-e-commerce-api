@@ -32,4 +32,11 @@ router.post(
   orderController.updateOrderStatusByUser,
 )
 
+router.post(
+  '/calculate-price',
+  authenticateToken,
+  hasPermission('user'),
+  orderController.calculatePrice,
+)
+
 module.exports = router

@@ -95,8 +95,10 @@ exports.createOrders = async (req, res) => {
     const { variants: orderItems } = req.body
     const userId = req.user.userId
 
+    let totalPrice = 0
+
     const userOrder = await Order.create(
-      { UserId: userId, status: 'established' },
+      { UserId: userId, status: 'established', price:totalPrice },
       { transaction },
     )
 
@@ -122,11 +124,6 @@ exports.createOrders = async (req, res) => {
         },
       })
 
-      console.log({
-        VariantId: variantId,
-        OrderId: userOrder.id,
-      })
-
       if (existingOrderItem) {
         await transaction.rollback()
         return res.status(400).json({ message: 'Order Variant duplicate' })
@@ -145,9 +142,13 @@ exports.createOrders = async (req, res) => {
         { quantity: variant.quantity - quantity },
         { transaction },
       )
+
+      totalPrice += variant.price * quantity
     }
 
+    await userOrder.update({price: totalPrice }, { transaction })
     await transaction.commit()
+
     res.status(201).json(userOrder)
   } catch (error) {
     await transaction.rollback()
@@ -229,5 +230,36 @@ exports.deleteOrder = async (req, res) => {
     res.status(204).send()
   } catch (error) {
     res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
+
+exports.calculatePrice = async (req, res) => {
+  const { variants } = req.body
+
+  try {
+    let totalPrice = 0
+
+    for (const variant of variants) {
+      const { variantId, quantity } = variant
+      const existingVariant = await Variant.findByPk(variantId)
+
+      if (!existingVariant) {
+        return res.status(400).json({ message: `Variant not found` })
+      }
+
+      if (existingVariant.quantity < quantity) {
+        return res.status(400).json({ message: `Variant not enough` })
+      }
+
+      totalPrice += existingVariant.price * quantity
+    }
+
+    res.status(200).json({
+      totalPrice,
+      quantity: variants.map((item) => item.quantity).reduce((a, b) => a + b),
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Internal server error' })
   }
 }
