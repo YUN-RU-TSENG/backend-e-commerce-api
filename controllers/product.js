@@ -18,7 +18,32 @@ const updateProductSchema = Joi.object({
 
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.findAll()
+    const { categoryName, subCategoryName } = req.query
+    const whereClause = {}
+
+    if (categoryName) {
+      const category = await Category.findOne({ where: { name: categoryName } })
+      if (!category) {
+        res.status(400).json({ message: 'Category not found' })
+      }
+      whereClause.CategoryId = category.id
+    }
+    if (subCategoryName) {
+      const subCategory = await SubCategory.findOne({
+        where: { name: subCategoryName },
+      })
+
+      if (!subCategory) {
+        res.status(400).json({ message: 'SubCategory not found' })
+      }
+
+      whereClause.SubCategoryId = subCategory.id
+    }
+
+    const products = await Product.findAll({
+      where: whereClause,
+      include: [{ model: Variant }],
+    })
     res.status(200).json(products)
   } catch (error) {
     console.error(error)
