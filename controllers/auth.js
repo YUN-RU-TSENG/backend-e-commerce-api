@@ -20,7 +20,7 @@ exports.register = (role) => {
       const { error } = registerSchema.validate(req.body)
 
       if (error)
-        return res.status(400).json({ error: error.details[0].message })
+        return res.status(400).json({ message: error.details[0].message })
 
       const { username, email, password } = req.body
 
@@ -54,20 +54,20 @@ exports.login = (role) => {
       const { error } = loginSchema.validate(req.body)
 
       if (error)
-        return res.status(400).json({ error: error.details[0].message })
+        return res.status(400).json({ message: error.details[0].message })
 
       const { email, password } = req.body
 
       const user = await User.findOne({ where: { email, role } })
 
       if (!user) {
-        return res.status(404).json({ message: 'User not found' })
+        return res.status(400).json({ message: 'User not found' })
       }
 
       const passwordMatch = await bcrypt.compare(password, user.password)
 
       if (!passwordMatch) {
-        return res.status(401).json({ message: 'Incorrect password' })
+        return res.status(400).json({ message: 'Incorrect password' })
       }
 
       const token = jwt.sign({ userId: user.id }, 'your-secret-key', {
