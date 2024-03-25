@@ -1,6 +1,7 @@
 const Variant = require('../models/Variant')
 const Cart = require('../models/Cart')
 const CartItem = require('../models/CartItem')
+const Product = require('../models/Product')
 const User = require('../models/User')
 const Joi = require('joi')
 
@@ -23,6 +24,12 @@ exports.getCart = async (req, res) => {
         {
           model: Variant,
           through: { attributes: ['quantity'] },
+          include: [
+            {
+              model: Product,
+              attributes: ['name', 'image'],
+            },
+          ],
         },
       ],
     })
@@ -44,6 +51,12 @@ exports.getAllCarts = async (req, res) => {
             {
               model: Variant,
               through: { attributes: ['quantity'] },
+              include: [
+                {
+                  model: Product,
+                  attributes: ['name', 'image'],
+                },
+              ],
             },
           ],
         },
@@ -66,9 +79,14 @@ exports.addToCart = async (req, res) => {
     const userId = req.user.userId
 
     const variant = await Variant.findByPk(variantId)
+    const product = await Product.findByPk(variant.ProductId)
 
     if (!variant) {
       return res.status(400).json({ message: 'Variant not found' })
+    }
+
+    if (!product) {
+      return res.status(400).json({ message: 'Product not found' })
     }
 
     if (variant.quantity < quantity) {
