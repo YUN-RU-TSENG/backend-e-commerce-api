@@ -34,7 +34,15 @@ exports.getCart = async (req, res) => {
       ],
     })
 
-    res.json(userCart)
+    const responseData = {
+      id: userCart.id,
+      createdAt: userCart.createdAt,
+      updatedAt: userCart.updatedAt,
+      UserId: userCart.UserId,
+      cartItems: userCart.Variants,
+    }
+
+    res.json(responseData)
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Internal Server Error' })
@@ -78,7 +86,14 @@ exports.addToCart = async (req, res) => {
 
     const userId = req.user.userId
 
-    const variant = await Variant.findByPk(variantId)
+    const variant = await Variant.findByPk(variantId, {
+      include: [
+        {
+          model: Product,
+          attributes: ['name', 'image'],
+        },
+      ],
+    })
     const product = await Product.findByPk(variant.ProductId)
 
     if (!variant) {
@@ -95,7 +110,7 @@ exports.addToCart = async (req, res) => {
 
     const [userCart] = await Cart.findOrCreate({ where: { UserId: userId } })
 
-    const existingCartItem = await CartItem.findOne({
+    let existingCartItem = await CartItem.findOne({
       where: {
         VariantId: variantId,
         CartId: userCart.id,
@@ -105,16 +120,33 @@ exports.addToCart = async (req, res) => {
     if (existingCartItem) {
       existingCartItem.quantity += quantity
       await existingCartItem.save()
-      res.status(200).json(existingCartItem)
+    } else {
+      existingCartItem = await CartItem.create({
+        VariantId: variantId,
+        CartId: userCart.id,
+        quantity,
+      })
     }
 
-    const cartItem = await CartItem.create({
-      VariantId: variantId,
-      CartId: userCart.id,
-      quantity,
-    })
+    const responseData = {
+      id: variant.id,
+      color: variant.color,
+      size: variant.size,
+      quantity: variant.quantity,
+      price: variant.price,
+      createdAt: variant.createdAt,
+      updatedAt: variant.updatedAt,
+      ProductId: variant.ProductId,
+      Product: {
+        name: variant.Product.name,
+        image: variant.Product.image,
+      },
+      CartItem: {
+        quantity: existingCartItem.quantity,
+      },
+    }
 
-    res.status(201).json(cartItem)
+    res.status(201).json(responseData)
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Internal Server Error' })
@@ -129,7 +161,14 @@ exports.updateCartItem = async (req, res) => {
     const { variantId, quantity } = req.body
 
     const userId = req.user.userId
-    const variant = await Variant.findByPk(variantId)
+    const variant = await Variant.findByPk(variantId, {
+      include: [
+        {
+          model: Product,
+          attributes: ['name', 'image'],
+        },
+      ],
+    })
 
     if (!variant) {
       return res.status(400).json({ message: 'Variant not found' })
@@ -155,7 +194,25 @@ exports.updateCartItem = async (req, res) => {
     existingCartItem.quantity = quantity
     await existingCartItem.save()
 
-    res.status(200).json(existingCartItem)
+    const responseData = {
+      id: variant.id,
+      color: variant.color,
+      size: variant.size,
+      quantity: variant.quantity,
+      price: variant.price,
+      createdAt: variant.createdAt,
+      updatedAt: variant.updatedAt,
+      ProductId: variant.ProductId,
+      Product: {
+        name: variant.Product.name,
+        image: variant.Product.image,
+      },
+      CartItem: {
+        quantity: existingCartItem.quantity,
+      },
+    }
+
+    res.status(201).json(responseData)
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Internal Server Error' })
