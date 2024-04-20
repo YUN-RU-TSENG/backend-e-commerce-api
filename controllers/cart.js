@@ -94,14 +94,9 @@ exports.addToCart = async (req, res) => {
         },
       ],
     })
-    const product = await Product.findByPk(variant.ProductId)
 
     if (!variant) {
       return res.status(400).json({ message: 'Variant not found' })
-    }
-
-    if (!product) {
-      return res.status(400).json({ message: 'Product not found' })
     }
 
     if (variant.quantity < quantity) {
@@ -118,15 +113,14 @@ exports.addToCart = async (req, res) => {
     })
 
     if (existingCartItem) {
-      existingCartItem.quantity += quantity
-      await existingCartItem.save()
-    } else {
-      existingCartItem = await CartItem.create({
-        VariantId: variantId,
-        CartId: userCart.id,
-        quantity,
-      })
+      return res.status(409).json({ message: 'Product already in cart' })
     }
+
+    await CartItem.create({
+      VariantId: variantId,
+      CartId: userCart.id,
+      quantity,
+    })
 
     const responseData = {
       id: variant.id,
@@ -142,7 +136,7 @@ exports.addToCart = async (req, res) => {
         image: variant.Product.image,
       },
       CartItem: {
-        quantity: existingCartItem.quantity,
+        quantity,
       },
     }
 
@@ -248,6 +242,60 @@ exports.deleteCartItem = async (req, res) => {
     await existingCartItem.destroy()
 
     res.status(204).send()
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
+
+exports.syncCartItem = async (req, res) => {
+  const { cartItems } = req.body
+  const userId = req.user.userId
+  try {
+    const existingCart = await Cart.findOne({ where: { UserId: userId } })
+    if (existingCart) {
+      await existingCart.destroy()
+    }
+
+    const newCart = await Cart.create({ UserId: userId })
+
+    const variants = await Promise.all(
+      cartItems.map((item) => Variant.findByPk(item.variantId)),
+    )
+
+    if (variants.includes(null)) {
+      return res
+        .status(400)
+        .json({ message: 'One or more variants do not exist' })
+    }
+
+    const newCartItems = cartItems.map((item) => ({
+      VariantId: item.variantId,
+      CartId: newCart.id,
+      quantity: item.quantity,
+    }))
+
+    await CartItem.bulkCreate(newCartItems)
+
+    const responseData = await Cart.findOne({
+      where: { id: newCart.id },
+      include: [
+        {
+          model: Variant,
+          as: 'Variants',
+          through: { attributes: ['quantity'] },
+          include: [
+            {
+              model: Product,
+              attributes: ['name', 'image'],
+            },
+          ],
+        },
+      ],
+    })
+
+    console.log(responseData, 'responseData')
+    res.status(200).json(responseData)
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Internal Server Error' })
