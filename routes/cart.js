@@ -39,4 +39,11 @@ router.post(
   cartController.syncCartItem,
 )
 
+router.post(
+  '/delete-all',
+  authenticateToken,
+  hasPermission('user'),
+  cartController.deleteAllCartItem,
+)
+
 module.exports = router

@@ -294,8 +294,22 @@ exports.syncCartItem = async (req, res) => {
       ],
     })
 
-    console.log(responseData, 'responseData')
     res.status(200).json(responseData)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Internal Server Error' })
+  }
+}
+
+exports.deleteAllCartItem = async (req, res) => {
+  const userId = req.user.userId
+  try {
+    const existingCart = await Cart.findOne({ where: { UserId: userId } })
+    if (existingCart) {
+      await existingCart.destroy()
+    }
+
+    res.status(204)
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: 'Internal Server Error' })

@@ -1,19 +1,15 @@
 const Order = require('../models/Order')
 const OrderItem = require('../models/OrderItem')
 const Variant = require('../models/Variant')
+const Product = require('../models/Product')
+const Cart = require('../models/Cart')
+const CartItem = require('../models/CartItem')
 const User = require('../models/User')
 const Joi = require('joi')
 const sequelize = require('../config/database.js')
 
 const orderSchema = Joi.object({
-  variants: Joi.array()
-    .items(
-      Joi.object({
-        variantId: Joi.number().required(),
-        quantity: Joi.number().integer().min(1).required(),
-      }),
-    )
-    .required(),
+  variants: Joi.array().items().required(),
 })
 
 exports.getAllOrdersOfUser = async (req, res) => {
@@ -26,6 +22,12 @@ exports.getAllOrdersOfUser = async (req, res) => {
         {
           model: Variant,
           through: { attributes: ['quantity'] },
+          include: [
+            {
+              model: Product,
+              attributes: ['name', 'image'],
+            },
+          ],
         },
       ],
     })
@@ -99,7 +101,21 @@ exports.createOrders = async (req, res) => {
     )
 
     for (const item of orderItems) {
-      const { variantId, quantity } = item
+      const variantId = item
+      const [userCart] = await Cart.findOrCreate({
+        where: { UserId: userId },
+      })
+      const cartItem = await CartItem.findOne({
+        where: {
+          VariantId: variantId,
+          CartId: userCart.id,
+        },
+      })
+
+      if (!cartItem) {
+        await transaction.rollback()
+        return res.status(400).json({ message: 'CartItem not found' })
+      }
 
       const variant = await Variant.findByPk(variantId)
 
@@ -108,7 +124,7 @@ exports.createOrders = async (req, res) => {
         return res.status(400).json({ message: 'Variant not found' })
       }
 
-      if (variant.quantity < quantity) {
+      if (variant.quantity < cartItem.quantity) {
         await transaction.rollback()
         return res.status(400).json({ message: 'Variant quantity not enough' })
       }
@@ -129,17 +145,21 @@ exports.createOrders = async (req, res) => {
         {
           VariantId: variantId,
           OrderId: userOrder.id,
-          quantity,
+          quantity: cartItem.quantity,
         },
         { transaction },
       )
 
       await variant.update(
-        { quantity: variant.quantity - quantity },
+        { quantity: variant.quantity - cartItem.quantity },
         { transaction },
       )
 
-      totalPrice += variant.price * quantity
+      await cartItem.destroy({
+        transaction,
+      })
+
+      totalPrice += variant.price * cartItem.quantity
     }
 
     await userOrder.update({ price: totalPrice }, { transaction })
